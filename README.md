@@ -23,8 +23,8 @@ This collection of small functions was created for people who either have a rela
 ## Requirements
 [gmusicapi](https://github.com/simon-weber/Unofficial-Google-Music-API "gmusicapi")
 
-
-## This entire repository was started thanks to the prior work of:
+## Acknowledgements
+This entire repository was started thanks to the prior work of:
 * shuichinet
 * fcrimins
 * Morgan Gothard
