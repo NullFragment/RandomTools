@@ -16,7 +16,7 @@ This collection of small functions was created for people who either have a rela
     * This is a double edged sword. If you have multiple playlists that share a common phrase (especially common when transferring playlists from a music service that allows more than 1000 songs per playlist), it will search if that phrase exists in all of the playlists and remove the duplicates from them.
     * **Be sure to change the name of a playlist to something unique first if you only want that playlist to be affected** (or modify the code)
 
-* **Why would you want all of your library put into playlists? **
+* **Why would you want all of your library put into playlists?**
     * Because I have a problem....
     * Also if you want to download all of your music on your phone or any other mobile device, it makes it a hell of a lot easier than downloading each album individually.
 
