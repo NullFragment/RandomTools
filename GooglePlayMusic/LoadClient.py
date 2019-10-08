@@ -1,10 +1,10 @@
 """
 Moved from DeleteDuplicatesFromLibray file into this one as a function.
 """
-
 from gmusicapi import Mobileclient
-from getpass import getpass
-
+from gmusicapi.exceptions import InvalidDeviceId
+import os
+import appdirs
 
 def load_client():
     """
@@ -12,5 +12,13 @@ def load_client():
     :return: client reference
     """
     client = Mobileclient()
-    logged_in = client.login(input('Username:'), getpass(), Mobileclient.FROM_MAC_ADDRESS)
+    if(not os.path.exists(client.OAUTH_FILEPATH)):
+        credentials = client.perform_oauth()
+        
+    ## Yes this is bad.
+    ## No, I don't feel bad.
+    try:
+        client.oauth_login("")
+    except InvalidDeviceId as e:
+            client.oauth_login(e.valid_device_ids[0])
     return client
