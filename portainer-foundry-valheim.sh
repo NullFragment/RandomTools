@@ -12,15 +12,20 @@ traefikEmail=TODO
 traefikDomain=TODO
 
 setupValheim=true #false?
+valheimDir=$HOME/valheim
 valheimServer=TODO
 valheimWorld=TODO
 valheimPass=TODO
 valheimPublic=0
-valheimDir=$HOME/valheim
+valheimDomain=TODO
 
 setupFoundry=true #false?
+foundryDir=$HOME/foundry
+foundryDataDir="$foundryDir"/foundrydata
+foundryZipDir="$foundryDir"/foundrydl
 foundryDownloadLink=TODO
 foundryDomain=TODO
+
 
 # Update
 apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y
@@ -76,7 +81,6 @@ chmod 600 "$traefikDir"/acme.json
 docker network create proxy
 echo "---
 version: '2'
-
 services:
   traefik:
     image: traefik:v2.0
@@ -107,9 +111,9 @@ services:
       - \"traefik.http.routers.traefik.entrypoints=http\"
       - \"traefik.http.routers.traefik.middlewares=traefik-https-redirect\"
       - \"traefik.http.routers.traefik.rule=Host(\`$traefikDomain\`)\"
-  networks:
-    proxy:
-      external: \"true\"
+networks:
+  proxy:
+    external: \"true\"
     " >>"$traefikDir"/docker-compose.yaml
 cd $traefikDir
 docker-compose up -d
@@ -120,10 +124,9 @@ mkdir "$portainerDir"
 mkdir "$portainerDir"/data
 echo "---
 version: '2'
-
 services:
   portainer:
-    image: portainer/portainer:latest
+    image: portainer/portainer-ce:latest
     container_name: portainer
     restart: unless-stopped
     security_opt:
@@ -147,9 +150,9 @@ services:
       - \"traefik.http.routers.portainer.middlewares=portainer-https-redirect\"
       - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain\`)\"
       - \"traefik.http.services.portainer.loadbalancer.server.port=9000\"
-  networks:
-    proxy:
-      external: \"true\"
+networks:
+  proxy:
+    external: \"true\"
     " >>"$portainerDir"/docker-compose.yaml
 
 cd $portainerDir
@@ -159,44 +162,41 @@ cd $HOME
 # Traefik Config
 
 if $setupFoundry; then
-  foundryDataDir="$foundryDir"/foundrydata
-  foundryZipDir="$foundryDir"/foundrydl
   mkdir "$foundryDir"
   mkdir "$foundryDataDir"
   mkdir "$foundryZipDir"
-  wget -O "$foundryZipDir"/foundryvtt.zip "$foundryDownloadLink"
+  wget -O "$foundryZipDir"/valheim.zip "$foundryDownloadLink"
   echo "****************************************************************"
   echo "Here's your foundry portainer config"
   echo "---
-  version: '2'
-  services:
-    foundryvtt:
-      image: direckthit/fvtt-docker:latest
-      container_name: foundryvtt
-      restart: always
-      entrypoint: /opt/foundryvtt/run-server.sh
-      volumes:
-        - $foundryDataDir:/data/foundryvtt
-        - $foundryZipDir:/host
-      networks:
-        -proxy
-      labels:
-        - \"traefik.docker.network=proxy\"
-        - \"traefik.enable=true\"
-        - \"traefik.http.middlewares.foundryvtt-https-redirect.redirectscheme.scheme=https\"
-        - \"traefik.http.routers.foundryvtt-secure.entrypoints=https\"
-        - \"traefik.http.routers.foundryvtt-secure.rule=Host(\`$foundryDomain\`)\"
-        - \"traefik.http.routers.foundryvtt-secure.service=foundryvtt\"
-        - \"traefik.http.routers.foundryvtt-secure.tls.certresolver=http\"
-        - \"traefik.http.routers.foundryvtt-secure.tls=true\"
-        - \"traefik.http.routers.foundryvtt.entrypoints=http\"
-        - \"traefik.http.routers.foundryvtt.middlewares=portainer-https-redirect\"
-        - \"traefik.http.routers.foundryvtt.rule=Host(\`$foundryDomain\`)\"
-        - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
-
-  networks:
-    proxy:
-      external: true
+version: '2'
+services:
+  valheim:
+    image: direckthit/fvtt-docker:latest
+    container_name: valheim
+    restart: always
+    entrypoint: /opt/valheim/run-server.sh
+    volumes:
+      - $foundryDataDir:/data/valheim
+      - $foundryZipDir:/host
+    networks:
+      - proxy
+    labels:
+      - \"traefik.docker.network=proxy\"
+      - \"traefik.enable=true\"
+      - \"traefik.http.middlewares.valheim-https-redirect.redirectscheme.scheme=https\"
+      - \"traefik.http.routers.valheim-secure.entrypoints=https\"
+      - \"traefik.http.routers.valheim-secure.rule=Host(\`$foundryDomain\`)\"
+      - \"traefik.http.routers.valheim-secure.service=valheim\"
+      - \"traefik.http.routers.valheim-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.valheim-secure.tls=true\"
+      - \"traefik.http.routers.valheim.entrypoints=http\"
+      - \"traefik.http.routers.valheim.middlewares=portainer-https-redirect\"
+      - \"traefik.http.routers.valheim.rule=Host(\`$foundryDomain\`)\"
+      - \"traefik.http.services.valheim.loadbalancer.server.port=30000\"
+networks:
+  proxy:
+    external: true
       "
   echo "****************************************************************"
 fi
@@ -223,7 +223,24 @@ services:
       - $valheimDir/config:/config
       - $valheimDir/data:/opt/valheim
     ports:
-      - 2456-2458:2456-2458/udp"
+      - 2456-2458:2456-2458/udp
+    labels:
+      - \"traefik.docker.network=proxy\"
+      - \"traefik.enable=true\"
+      - \"traefik.http.middlewares.valheim-https-redirect.redirectscheme.scheme=https\"
+      - \"traefik.http.routers.valheim-secure.entrypoints=https\"
+      - \"traefik.http.routers.valheim-secure.rule=Host(\`$valheimDomain\`)\"
+      - \"traefik.http.routers.valheim-secure.service=valheim\"
+      - \"traefik.http.routers.valheim-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.valheim-secure.tls=true\"
+      - \"traefik.http.routers.valheim.entrypoints=http\"
+      - \"traefik.http.routers.valheim.middlewares=portainer-https-redirect\"
+      - \"traefik.http.routers.valheim.rule=Host(\`$valheimDomain\`)\"
+      - \"traefik.http.services.valheim.loadbalancer.server.port=2456\"
+networks:
+  proxy:
+    external: true
+      "
   echo "****************************************************************"
 fi
 
