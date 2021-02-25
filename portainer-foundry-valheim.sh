@@ -38,13 +38,16 @@ EONG
 
 # Open ports
 sudo ufw allow 22
-sudo ufw allow 80
-sudo ufw allow 443
+sudo ufw allow 81
+sudo ufw allow 444
 sudo ufw allow 2456 # Valheim
 sudo ufw allow 2457 # Valheim
 sudo ufw allow 2458 # Valheim
 sudo yes | ufw enable
 
+
+# Setup Traefik
+traefikAuth=$(htpasswd -nb admin $traefikPass | sed -e "s/\\$/\\$\\$/g")
 mkdir "$traefikDir"
 echo "api:
   dashboard: true
@@ -71,54 +74,6 @@ certificatesResolvers:
 touch "$traefikDir"/acme.json
 chmod 600 "$traefikDir"/acme.json
 docker network create proxy
-
-# Setup Portainer
-mkdir "$portainerDir"
-mkdir "$portainerDir"/data
-echo "---
-version: '2'
-
-services:
-  portainer:
-    image: portainer/portainer:latest
-    container_name: portainer
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    networks:
-      - proxy
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./data:/data
-    labels:
-      - \"traefik.enable=true\"
-      - \"traefik.http.routers.portainer.entrypoints=http\"
-      - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain)\"
-      - \"traefik.http.middlewares.portainer-https-redirect.redirectscheme.scheme=https\"
-      - \"traefik.http.routers.portainer.middlewares=portainer-https-redirect\"
-      - \"traefik.http.routers.portainer-secure.entrypoints=https\"
-      - \"traefik.http.routers.portainer-secure.rule=Host(\`$portainerDomain\`)\"
-      - \"traefik.http.routers.portainer-secure.tls=true\"
-      - \"traefik.http.routers.portainer-secure.tls.certresolver=http\"
-      - \"traefik.http.routers.portainer-secure.service=portainer\"
-      - \"traefik.http.services.portainer.loadbalancer.server.port=9000\"
-      - \"traefik.docker.network=proxy\"
-
-networks:
-  proxy:
-    external: \"true\"
-    " >>"$portainerDir"/docker-compose.yaml
-
-cd $portainerDir
-docker-compose up -d
-cd $HOME
-
-# Traefik Config
-traefikAuth=$(htpasswd -nb admin $traefikPass | sed -e "s/\\$/\\$\\$/g")
-
-echo "****************************************************************"
-echo "Here's your traefik portainer config"
 echo "---
 version: '2'
 
@@ -152,7 +107,59 @@ services:
       - \"traefik.http.routers.traefik-secure.tls=true\"
       - \"traefik.http.routers.traefik-secure.tls.certresolver=http\"
       - \"traefik.http.routers.traefik-secure.service=api@internal\"
-      "
+networks:
+  proxy:
+    external: \"true\"
+    ">>"$traefikDir"/docker-compose.yaml
+cd $traefikDir
+docker-compose up -d
+cd $HOME
+
+# Setup Portainer
+mkdir "$portainerDir"
+mkdir "$portainerDir"/data
+echo "---
+version: '2'
+
+services:
+  portainer:
+    image: portainer/portainer:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data
+    labels:
+      - \"traefik.enable=true\"
+      - \"traefik.http.routers.portainer.entrypoints=http\"
+      - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain)\"
+      - \"traefik.http.middlewares.portainer-https-redirect.redirectscheme.scheme=https\"
+      - \"traefik.http.routers.portainer.middlewares=portainer-https-redirect\"
+      - \"traefik.http.routers.portainer-secure.entrypoints=https\"
+      - \"traefik.http.routers.portainer-secure.rule=Host(\`$portainerDomain\`)\"
+      - \"traefik.http.routers.portainer-secure.tls=true\"
+      - \"traefik.http.routers.portainer-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.portainer-secure.service=portainer\"
+      - \"traefik.http.services.portainer.loadbalancer.server.port=9000\"
+      - \"traefik.docker.network=proxy\"
+networks:
+  proxy:
+    external: \"true\"
+    " >>"$portainerDir"/docker-compose.yaml
+
+cd $portainerDir
+docker-compose up -d
+cd $HOME
+
+# Traefik Config
+
+echo "****************************************************************"
+echo "Here's your traefik portainer config"
 echo "****************************************************************"
 
 if $setupFoundry; then
