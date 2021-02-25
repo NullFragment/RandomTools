@@ -38,8 +38,8 @@ EONG
 
 # Open ports
 sudo ufw allow 22
-sudo ufw allow 81
-sudo ufw allow 444
+sudo ufw allow 80
+sudo ufw allow 443
 sudo ufw allow 2456 # Valheim
 sudo ufw allow 2457 # Valheim
 sudo ufw allow 2458 # Valheim
