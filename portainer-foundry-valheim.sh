@@ -158,7 +158,7 @@ if $setupFoundry; then
   mkdir "$HOME"/foundry
   mkdir "$HOME"/foundrydata
   mkdir "$HOME"/foundrydl
-  wget -O foundryvtt.zip $foundryDownloadLink
+  wget -O "$HOME"/foundrydl/foundryvtt.zip $foundryDownloadLink
   echo "****************************************************************"
   echo "Here's your foundry portainer config"
   echo ""
