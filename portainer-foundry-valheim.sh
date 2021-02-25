@@ -1,6 +1,23 @@
 #!/bin/bash
 
-# Fill all of these TODOs out!
+#######################################################################################
+# How to use:
+#   1. You'll need to get your domains set up beforehand
+#   2. Fill out these TODOs, but please don't publish them anywhere
+#      - You need to get the foundry download link from your foundry account. 
+#          It will expire after a while, so make sure you get it close to when 
+#          you're ready to deploy.
+#      - Again, please don't publish any of your passwords or user names anywhere
+#      - Change the setup values to false if you don't want to install them
+#   3. Create your droplet/instance/what have you
+#   4. Run this script
+#   5. Log into portainer and navigate to the stacks tab
+#   6. For each service you are deploying (foundry/valheim):
+#     - Click "Add stack" and give it a name
+#     - Copy and paste ONE of the compose outputs into the web editor
+#     - Click "Deploy the stack"
+#   7. You're done. Make sure everything is working! :)
+#######################################################################################
 username=TODO
 
 portainerDir=$HOME/portainer
@@ -11,7 +28,7 @@ traefikPass=TODO
 traefikEmail=TODO
 traefikDomain=TODO
 
-setupValheim=true #false?
+setupValheim=true
 valheimDir=$HOME/valheim
 valheimServer=TODO
 valheimWorld=TODO
@@ -19,30 +36,35 @@ valheimPass=TODO
 valheimPublic=0
 valheimDomain=TODO
 
-setupFoundry=true #false?
+setupFoundry=true
 foundryDir=$HOME/foundry
-foundryDataDir="$foundryDir"/foundrydata
-foundryZipDir="$foundryDir"/foundrydl
 foundryDownloadLink=TODO
 foundryDomain=TODO
 
-
-# Update
+#######################################################################################
+# Update linux
+#######################################################################################
 apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y
 
-# Create a user
+#######################################################################################
+# Create your user
+#######################################################################################
 adduser $username
 usermod -aG sudo $username
 su - $username
 
+#######################################################################################
 # Install Docker
+#######################################################################################
 sudo apt update && sudo apt install apache2-utils docker.io docker-compose
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 newgrp docker <<EONG
 EONG
 
-# Open ports
+#######################################################################################
+# Open ports and start firewall
+#######################################################################################
 sudo ufw allow 22
 sudo ufw allow 80
 sudo ufw allow 443
@@ -51,7 +73,9 @@ sudo ufw allow 2457 # Valheim
 sudo ufw allow 2458 # Valheim
 sudo yes | ufw enable
 
-# Setup Traefik
+#######################################################################################
+# Setup Traefik stack
+#######################################################################################
 traefikAuth=$(htpasswd -nb admin $traefikPass | sed -e "s/\\$/\\$\\$/g")
 mkdir "$traefikDir"
 echo "api:
@@ -119,7 +143,9 @@ cd $traefikDir
 docker-compose up -d
 cd $HOME
 
-# Setup Portainer
+#######################################################################################
+# Setup Portainer Stack
+#######################################################################################
 mkdir "$portainerDir"
 mkdir "$portainerDir"/data
 echo "---
@@ -159,41 +185,44 @@ cd $portainerDir
 docker-compose up -d
 cd $HOME
 
-# Traefik Config
-
+#######################################################################################
+# Prepare & Print FoundryVTT Compose
+#######################################################################################
 if $setupFoundry; then
+  foundryDataDir="$foundryDir"/foundrydata
+  foundryZipDir="$foundryDir"/foundrydl
   mkdir "$foundryDir"
   mkdir "$foundryDataDir"
   mkdir "$foundryZipDir"
   wget -O "$foundryZipDir"/valheim.zip "$foundryDownloadLink"
   echo "****************************************************************"
-  echo "Here's your foundry portainer config"
+  echo "Here's your FoundryVTT docker-compose stack script for Portainer:"
   echo "---
 version: '2'
 services:
-  valheim:
+  foundryvtt:
     image: direckthit/fvtt-docker:latest
-    container_name: valheim
+    container_name: foundryvtt
     restart: always
-    entrypoint: /opt/valheim/run-server.sh
+    entrypoint: /opt/foundryvtt/run-server.sh
     volumes:
-      - $foundryDataDir:/data/valheim
+      - $foundryDataDir:/data/foundryvtt
       - $foundryZipDir:/host
     networks:
       - proxy
     labels:
       - \"traefik.docker.network=proxy\"
       - \"traefik.enable=true\"
-      - \"traefik.http.middlewares.valheim-https-redirect.redirectscheme.scheme=https\"
-      - \"traefik.http.routers.valheim-secure.entrypoints=https\"
-      - \"traefik.http.routers.valheim-secure.rule=Host(\`$foundryDomain\`)\"
-      - \"traefik.http.routers.valheim-secure.service=valheim\"
-      - \"traefik.http.routers.valheim-secure.tls.certresolver=http\"
-      - \"traefik.http.routers.valheim-secure.tls=true\"
-      - \"traefik.http.routers.valheim.entrypoints=http\"
-      - \"traefik.http.routers.valheim.middlewares=portainer-https-redirect\"
-      - \"traefik.http.routers.valheim.rule=Host(\`$foundryDomain\`)\"
-      - \"traefik.http.services.valheim.loadbalancer.server.port=30000\"
+      - \"traefik.http.middlewares.foundryvtt-https-redirect.redirectscheme.scheme=https\"
+      - \"traefik.http.routers.foundryvtt-secure.entrypoints=https\"
+      - \"traefik.http.routers.foundryvtt-secure.rule=Host(\`$foundryDomain\`)\"
+      - \"traefik.http.routers.foundryvtt-secure.service=foundryvtt\"
+      - \"traefik.http.routers.foundryvtt-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.foundryvtt-secure.tls=true\"
+      - \"traefik.http.routers.foundryvtt.entrypoints=http\"
+      - \"traefik.http.routers.foundryvtt.middlewares=portainer-https-redirect\"
+      - \"traefik.http.routers.foundryvtt.rule=Host(\`$foundryDomain\`)\"
+      - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
 networks:
   proxy:
     external: true
@@ -201,10 +230,13 @@ networks:
   echo "****************************************************************"
 fi
 
+#######################################################################################
+# Prepare & Print Valheim Compose
+#######################################################################################
 if $setupValheim; then
   mkdir "$valheimDir"
   echo "****************************************************************"
-  echo "Here's your valheim portainer config"
+  echo "Here's your Valheim docker-compose stack script for Portainer:"
   echo "---
 version: '2'
 services:
