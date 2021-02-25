@@ -46,7 +46,6 @@ sudo ufw allow 2457 # Valheim
 sudo ufw allow 2458 # Valheim
 sudo yes | ufw enable
 
-
 # Setup Traefik
 traefikAuth=$(htpasswd -nb admin $traefikPass | sed -e "s/\\$/\\$\\$/g")
 mkdir "$traefikDir"
@@ -108,10 +107,10 @@ services:
       - \"traefik.http.routers.traefik.entrypoints=http\"
       - \"traefik.http.routers.traefik.middlewares=traefik-https-redirect\"
       - \"traefik.http.routers.traefik.rule=Host(\`$traefikDomain\`)\"
-networks:
-  proxy:
-    external: \"true\"
-    ">>"$traefikDir"/docker-compose.yaml
+  networks:
+    proxy:
+      external: \"true\"
+    " >>"$traefikDir"/docker-compose.yaml
 cd $traefikDir
 docker-compose up -d
 cd $HOME
@@ -146,11 +145,11 @@ services:
       - \"traefik.http.routers.portainer-secure.tls=true\"
       - \"traefik.http.routers.portainer.entrypoints=http\"
       - \"traefik.http.routers.portainer.middlewares=portainer-https-redirect\"
-      - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain)\"
+      - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain\`)\"
       - \"traefik.http.services.portainer.loadbalancer.server.port=9000\"
-networks:
-  proxy:
-    external: \"true\"
+  networks:
+    proxy:
+      external: \"true\"
     " >>"$portainerDir"/docker-compose.yaml
 
 cd $portainerDir
@@ -195,15 +194,15 @@ if $setupFoundry; then
         - \"traefik.http.routers.foundryvtt.rule=Host(\`$foundryDomain\`)\"
         - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
 
-networks:
-  proxy:
-    external: true
+  networks:
+    proxy:
+      external: true
       "
   echo "****************************************************************"
 fi
 
 if $setupValheim; then
-  mkdir $valheimDir
+  mkdir "$valheimDir"
   echo "****************************************************************"
   echo "Here's your valheim portainer config"
   echo "---
