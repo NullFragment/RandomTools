@@ -104,7 +104,11 @@ services:
       - \"traefik.http.routers.portainer-secure.service=portainer\"
       - \"traefik.http.services.portainer.loadbalancer.server.port=9000\"
       - \"traefik.docker.network=proxy\"
-  " >>"$portainerDir"/docker-compose.yaml
+
+networks:
+  proxy:
+    external: \"true\"
+    " >>"$portainerDir"/docker-compose.yaml
 
 cd $portainerDir
 docker-compose up -d
@@ -148,10 +152,7 @@ services:
       - \"traefik.http.routers.traefik-secure.tls=true\"
       - \"traefik.http.routers.traefik-secure.tls.certresolver=http\"
       - \"traefik.http.routers.traefik-secure.service=api@internal\"
-
-networks:
-  proxy:
-    external: true"
+      "
 echo "****************************************************************"
 
 if $setupFoundry; then
