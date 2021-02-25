@@ -20,6 +20,7 @@ valheimDir=$HOME/valheim
 
 setupFoundry=true #false?
 foundryDownloadLink=TODO
+foundryDomain=TODO
 
 # Update
 apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y
@@ -96,17 +97,17 @@ services:
       - ./acme.json:/acme.json
     labels:
       - \"traefik.enable=true\"
-      - \"traefik.http.routers.traefik.entrypoints=http\"
-      - \"traefik.http.routers.traefik.rule=Host(\`$traefikDomain\`)\"
       - \"traefik.http.middlewares.traefik-auth.basicauth.users=$traefikAuth\"
       - \"traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https\"
-      - \"traefik.http.routers.traefik.middlewares=traefik-https-redirect\"
       - \"traefik.http.routers.traefik-secure.entrypoints=https\"
-      - \"traefik.http.routers.traefik-secure.rule=Host(\`$traefikDomain\`)\"
       - \"traefik.http.routers.traefik-secure.middlewares=traefik-auth\"
-      - \"traefik.http.routers.traefik-secure.tls=true\"
-      - \"traefik.http.routers.traefik-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.traefik-secure.rule=Host(\`$traefikDomain\`)\"
       - \"traefik.http.routers.traefik-secure.service=api@internal\"
+      - \"traefik.http.routers.traefik-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.traefik-secure.tls=true\"
+      - \"traefik.http.routers.traefik.entrypoints=http\"
+      - \"traefik.http.routers.traefik.middlewares=traefik-https-redirect\"
+      - \"traefik.http.routers.traefik.rule=Host(\`$traefikDomain\`)\"
 networks:
   proxy:
     external: \"true\"
@@ -135,18 +136,18 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data:/data
     labels:
+      - \"traefik.docker.network=proxy\"
       - \"traefik.enable=true\"
-      - \"traefik.http.routers.portainer.entrypoints=http\"
-      - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain)\"
       - \"traefik.http.middlewares.portainer-https-redirect.redirectscheme.scheme=https\"
-      - \"traefik.http.routers.portainer.middlewares=portainer-https-redirect\"
       - \"traefik.http.routers.portainer-secure.entrypoints=https\"
       - \"traefik.http.routers.portainer-secure.rule=Host(\`$portainerDomain\`)\"
-      - \"traefik.http.routers.portainer-secure.tls=true\"
-      - \"traefik.http.routers.portainer-secure.tls.certresolver=http\"
       - \"traefik.http.routers.portainer-secure.service=portainer\"
+      - \"traefik.http.routers.portainer-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.portainer-secure.tls=true\"
+      - \"traefik.http.routers.portainer.entrypoints=http\"
+      - \"traefik.http.routers.portainer.middlewares=portainer-https-redirect\"
+      - \"traefik.http.routers.portainer.rule=Host(\`$portainerDomain)\"
       - \"traefik.http.services.portainer.loadbalancer.server.port=9000\"
-      - \"traefik.docker.network=proxy\"
 networks:
   proxy:
     external: \"true\"
@@ -158,18 +159,47 @@ cd $HOME
 
 # Traefik Config
 
-echo "****************************************************************"
-echo "Here's your traefik portainer config"
-echo "****************************************************************"
-
 if $setupFoundry; then
-  mkdir "$HOME"/foundry
-  mkdir "$HOME"/foundrydata
-  mkdir "$HOME"/foundrydl
-  wget -O "$HOME"/foundrydl/foundryvtt.zip $foundryDownloadLink
+  foundryDataDir="$HOME"/foundrydata
+  foundryZipDir="$HOME"/foundrydl
+  mkdir "$foundryDir"
+  mkdir "$foundryDataDir"
+  mkdir "$foundryZipDir"
+  wget -O "$foundryZipDir"/foundryvtt.zip "$foundryDownloadLink"
   echo "****************************************************************"
   echo "Here's your foundry portainer config"
-  echo ""
+  echo "---
+  version '2'
+  services:
+    foundryvtt:
+      image:direckthit/fvtt-docker:latest
+      container_name: foundryvtt
+      restart: always
+      entrypoint: /opt/foundryvtt/run-server.sh
+      volumes:
+        - $foundryDataDir:/data/foundryvtt
+        - $foundryZipDir:/host
+      networks:
+        -proxy
+
+    labels:
+      - \"traefik.docker.network=proxy\"
+      - \"traefik.enable=true\"
+      - \"traefik.http.middlewares.foundryvtt-https-redirect.redirectscheme.scheme=https\"
+      - \"traefik.http.routers.foundryvtt-secure.entrypoints=https\"
+      - \"traefik.http.routers.foundryvtt-secure.rule=Host(\`$foundryDomain)\"
+      - \"traefik.http.routers.foundryvtt-secure.service=foundryvtt\"
+      - \"traefik.http.routers.foundryvtt-secure.tls.certresolver=http\"
+      - \"traefik.http.routers.foundryvtt-secure.tls=true\"
+      - \"traefik.http.routers.foundryvtt.entrypoints=http\"
+      - \"traefik.http.routers.foundryvtt.middlewares=portainer-https-redirect\"
+      - \"traefik.http.routers.foundryvtt.rule=Host(\`$foundryDomain)\"
+      - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
+
+networks:
+  proxy:
+    external: true
+      "
   echo "****************************************************************"
 fi
 
