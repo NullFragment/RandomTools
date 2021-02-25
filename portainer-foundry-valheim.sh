@@ -3,7 +3,7 @@
 # Fill all of these TODOs out!
 username=TODO
 
-portainerDir=TODO
+portainerDir=$HOME/portainer
 portainerDomain=TODO
 
 traefikDir=$HOME/traefik
