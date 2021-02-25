@@ -160,8 +160,8 @@ cd $HOME
 # Traefik Config
 
 if $setupFoundry; then
-  foundryDataDir="$HOME"/foundrydata
-  foundryZipDir="$HOME"/foundrydl
+  foundryDataDir="$foundryDir"/foundrydata
+  foundryZipDir="$foundryDir"/foundrydl
   mkdir "$foundryDir"
   mkdir "$foundryDataDir"
   mkdir "$foundryZipDir"
@@ -169,10 +169,10 @@ if $setupFoundry; then
   echo "****************************************************************"
   echo "Here's your foundry portainer config"
   echo "---
-  version '2'
+  version: '2'
   services:
     foundryvtt:
-      image:direckthit/fvtt-docker:latest
+      image: direckthit/fvtt-docker:latest
       container_name: foundryvtt
       restart: always
       entrypoint: /opt/foundryvtt/run-server.sh
@@ -181,20 +181,19 @@ if $setupFoundry; then
         - $foundryZipDir:/host
       networks:
         -proxy
-
-    labels:
-      - \"traefik.docker.network=proxy\"
-      - \"traefik.enable=true\"
-      - \"traefik.http.middlewares.foundryvtt-https-redirect.redirectscheme.scheme=https\"
-      - \"traefik.http.routers.foundryvtt-secure.entrypoints=https\"
-      - \"traefik.http.routers.foundryvtt-secure.rule=Host(\`$foundryDomain)\"
-      - \"traefik.http.routers.foundryvtt-secure.service=foundryvtt\"
-      - \"traefik.http.routers.foundryvtt-secure.tls.certresolver=http\"
-      - \"traefik.http.routers.foundryvtt-secure.tls=true\"
-      - \"traefik.http.routers.foundryvtt.entrypoints=http\"
-      - \"traefik.http.routers.foundryvtt.middlewares=portainer-https-redirect\"
-      - \"traefik.http.routers.foundryvtt.rule=Host(\`$foundryDomain)\"
-      - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
+      labels:
+        - \"traefik.docker.network=proxy\"
+        - \"traefik.enable=true\"
+        - \"traefik.http.middlewares.foundryvtt-https-redirect.redirectscheme.scheme=https\"
+        - \"traefik.http.routers.foundryvtt-secure.entrypoints=https\"
+        - \"traefik.http.routers.foundryvtt-secure.rule=Host(\`$foundryDomain\`)\"
+        - \"traefik.http.routers.foundryvtt-secure.service=foundryvtt\"
+        - \"traefik.http.routers.foundryvtt-secure.tls.certresolver=http\"
+        - \"traefik.http.routers.foundryvtt-secure.tls=true\"
+        - \"traefik.http.routers.foundryvtt.entrypoints=http\"
+        - \"traefik.http.routers.foundryvtt.middlewares=portainer-https-redirect\"
+        - \"traefik.http.routers.foundryvtt.rule=Host(\`$foundryDomain\`)\"
+        - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
 
 networks:
   proxy:
