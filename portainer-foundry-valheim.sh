@@ -42,16 +42,21 @@ foundryDownloadLink=TODO
 foundryDomain=TODO
 
 #######################################################################################
-# Update linux
-#######################################################################################
-apt-get update && apt-get upgrade -y && apt-get dist-upgrade -y
-
-#######################################################################################
 # Create your user
 #######################################################################################
-adduser $username
-usermod -aG sudo $username
-su - $username
+if [ "$EUID" -eq 0 ]; then
+  adduser $username
+  usermod -aG sudo $username
+
+  echo "Enter: [su - $username] and then continue the shell script as $username"
+  cp "$0" "$(eval echo ~$username)"
+  exit 0
+fi
+
+#######################################################################################
+# Update linux
+#######################################################################################
+sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y
 
 #######################################################################################
 # Install Docker
@@ -194,7 +199,7 @@ if $setupFoundry; then
   mkdir "$foundryDir"
   mkdir "$foundryDataDir"
   mkdir "$foundryZipDir"
-  wget -O "$foundryZipDir"/valheim.zip "$foundryDownloadLink"
+  wget -O "$foundryZipDir"/foundryvtt.zip "$foundryDownloadLink"
   echo "****************************************************************"
   echo "Here's your FoundryVTT docker-compose stack script for Portainer:"
   echo "---
@@ -276,4 +281,4 @@ networks:
   echo "****************************************************************"
 fi
 
-echo "Don't forget to set up an SSH key and your foundry options."
+echo "Don't forget to set up an SSH key and your foundry options. You might also need to restart portainer."
