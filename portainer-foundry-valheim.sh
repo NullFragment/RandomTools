@@ -28,6 +28,11 @@ traefikPass=TODO
 traefikEmail=TODO
 traefikDomain=TODO
 
+setupFoundry=true
+foundryDir=$HOME/foundry
+foundryDownloadLink=TODO
+foundryDomain=TODO
+
 setupValheim=true
 valheimDir=$HOME/valheim
 valheimServer=TODO
@@ -36,10 +41,12 @@ valheimPass=TODO
 valheimPublic=0
 valheimDomain=TODO
 
-setupFoundry=true
-foundryDir=$HOME/foundry
-foundryDownloadLink=TODO
-foundryDomain=TODO
+setupCalibre=true
+calibreConfigDir=$HOME/calibre/config
+calibreLibraryDir=$HOME/calibre/library
+calibreDomain=TODO
+
+
 
 #######################################################################################
 # Create your user
@@ -70,13 +77,24 @@ EONG
 #######################################################################################
 # Open ports and start firewall
 #######################################################################################
-sudo ufw allow 22
-sudo ufw allow 80
-sudo ufw allow 443
+sudo ufw allow 22 
+sudo ufw allow 80 # Traefik
+sudo ufw allow 443 # Traefik
 sudo ufw allow 2456 # Valheim
 sudo ufw allow 2457 # Valheim
 sudo ufw allow 2458 # Valheim
-sudo yes | ufw enable
+sudo ufw allow 8083 # Calibre
+yes | sudo ufw enable
+
+echo “Unfortunately because of how permissions work, we have to pause here.” 
+echo “Please respond to the prompt and check if you have permissions to run docker. If not, you need to log out of your account and back in, then restart the script.”
+read  -n 1 -p “Have you checked docker? (y/N): ” checkedDocker
+
+if [ “$checkedDocker” != “y” ] && [ “$checkedDocker” != “Y” ]; then
+  >&2 echo “Check docker works and restart the script.”
+  exit 1
+fi
+
 
 #######################################################################################
 # Setup Traefik stack
@@ -230,8 +248,7 @@ services:
       - \"traefik.http.services.foundryvtt.loadbalancer.server.port=30000\"
 networks:
   proxy:
-    external: true
-      "
+    external: true"
   echo "****************************************************************"
 fi
 
@@ -276,8 +293,53 @@ services:
       - \"traefik.http.services.valheim.loadbalancer.server.port=2456\"
 networks:
   proxy:
-    external: true
-      "
+    external: true"
+  echo "****************************************************************"
+fi
+
+#######################################################################################
+# Prepare & Print Calibre Compose
+#######################################################################################
+if $setupCalibre; then
+  mkdir "$valheimDir"
+  echo "****************************************************************"
+  echo "Here's your Calibre docker-compose stack script for Portainer:"
+  echo "---
+version: "2.1"
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - DOCKER_MODS=linuxserver/mods:universal-calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    volumes:
+      - $calibreConfigDir:/config
+      - $calibreLibraryDir:/books
+    ports:
+      - 8083:8083
+    networks:
+      - proxy
+    labels:
+      - \”traefik.docker.network=proxy\”
+      - \”traefik.enable=true\”
+      - \”traefik.http.middlewares.calibre-web-https-redirect.redirectscheme.scheme=https\”
+      - \”traefik.http.routers.calibre-web-secure.entrypoints=https\”
+      - \”traefik.http.routers.calibre-web-secure.rule=Host(`$calibreDomain`)\”
+      - \”traefik.http.routers.calibre-web-secure.service=calibre-web\”
+      - \”traefik.http.routers.calibre-web-secure.tls.certresolver=http\”
+      - \”traefik.http.routers.calibre-web-secure.tls=true\”
+      - \”traefik.http.routers.calibre-web.entrypoints=http\”
+      - \”traefik.http.routers.calibre-web.middlewares=portainer-https-redirect’”
+      - \”traefik.http.routers.calibre-web.rule=Host(`$calibreDomain`)’”
+      - \“traefik.http.services.calibre-web.loadbalancer.server.port=8083\”
+networks:
+  proxy:
+    external: true"
   echo "****************************************************************"
 fi
 
